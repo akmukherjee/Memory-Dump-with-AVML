@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "2.2",
+  "description": "Run a script on Linux instance to perform memory acquisition",
+  "parameters": {
+    "avmlVersion": {
+      "type": "String",
+      "description": "Acquire Volatile Memory for Linux",
+      "default": "v0.14.0"
+    },
+    "s3bucket": {
+      "type": "String",
+      "description": "(Required) Lime Memory dump location",
+      "default": "S3 bucket Location"
+    },
+    "Region": {
+      "type": "String",
+      "description": "(Required) Region details",
+      "default": "us-east-1"
+    },
+    "ExecutionTimeout": {
+      "type": "String",
+      "description": "(Required) SSM document execution timeout (seconds)",
+      "default": "1800"
+    }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runShellScript",
+      "name": "loadandrunavml",
+      "precondition": {
+        "StringEquals": [
+          "platformType",
+          "Linux"
+        ]
+      },
+      "inputs": {
+        "timeoutSeconds": "{{ExecutionTimeout}}",
+        "runCommand": [
+          "#!/bin/bash",
+          " # Check if the avml file exists",
+          " if [ -f \"avml\" ]; then",
+          "     # If it exists, delete it",
+          "    sudo rm -f avml",
+          "    echo 'Existing avml file deleted.'",
+          " else",
+          "     echo 'avml file does not exist.'",
+          "fi",
+          "echo 'Downloading AVML'",
+          "sudo wget https://github.com/microsoft/avml/releases/download/{{avmlVersion}}/avml",
+          "sudo chmod +x avml",
+          "current_date_time=$(date +'%Y-%m-%d_%H-%M-%S')",
+          "filename=\"memory_snapshot_${current_date_time}.lime\"",
+          "echo 'Delete existing Lime Files'",
+          "sudo rm -f *.lime",
+          "echo 'Generating Lime File'",
+          "sudo ./avml $filename",
+          "echo 'Changing File Permissions to make it Readable'",
+          "sudo chmod +r $filename",
+          "export AWS_DEFAULT_REGION={{Region}}",
+          " aws s3 cp $filename s3://{{s3bucket}}/memory-dump/",
+          "exit 0;"
+        ]
+      }
+    }
+  ]
+}
