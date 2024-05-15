@@ -26,17 +26,24 @@
   "mainSteps": [
     {
       "action": "aws:runShellScript",
-      "name": "loadandrunavml",
-      "precondition": {
-        "StringEquals": [
-          "platformType",
-          "Linux"
-        ]
-      },
+      "name": "InstallAWSCLIv2",
       "inputs": {
-        "timeoutSeconds": "{{ExecutionTimeout}}",
         "runCommand": [
           "#!/bin/bash",
+          "if ! command -v aws &> /dev/null; then",
+          "    sudo curl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o 'awscliv2.zip'",
+          "if command -v apt-get &> /dev/null; then",
+          "    sudo apt-get install -y unzip",
+          "    echo 'unzip installed.'",
+          "else",
+          "    echo 'This machine does not use APT.'",
+          "fi",
+          "    sudo unzip awscliv2.zip",
+          "    sudo ./aws/install",
+          "    aws --version",
+          "else",
+          "    echo 'AWS CLI v2 is already installed.'",
+          "fi",
           " # Check if the avml file exists",
           " if [ -f \"avml\" ]; then",
           "     # If it exists, delete it",
